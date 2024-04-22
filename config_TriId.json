@@ -1,0 +1,29 @@
+{
+    "task": "TriId",
+    "dataset": "ace05-en",
+    "model_type": "MQAEE",
+    "gpu_device": 0,
+    "seed": 0,
+    "cache_dir": "./cache",
+    "output_dir": "./outputs/MQAEE_TriId_ace05_bert-large-cased",
+    "train_file": "../autodl-fs/ace05-en/split1/train.json",
+    "dev_file": "../autodl-fs/ace05-en/split1/dev.json",
+    "test_file": "../autodl-fs/ace05-en/split1/test.json",
+
+    "pretrained_model_name": "bert-large-cased",
+    "pretrained_model_path": "../autodl-fs/bert-large-cased",
+    "max_length": 200,
+    "multi_piece_strategy": "average",
+
+    "span_base_model_dropout": 0.2,
+    "span_max_epoch": 20,
+    "span_warmup_epoch": 5,
+    "span_accumulate_step": 1,
+    "span_train_batch_size": 8,
+    "span_eval_batch_size": 12,
+    "span_learning_rate": 1e-05,
+    "span_base_model_learning_rate": 1e-05,
+    "span_weight_decay": 1e-05,
+    "span_base_model_weight_decay": 1e-05,
+    "span_grad_clipping": 5.0
+}  

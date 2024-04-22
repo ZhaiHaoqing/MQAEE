@@ -1,0 +1,30 @@
+{
+    "task": "TriCls",
+    "dataset": "ace05-en",
+    "model_type": "MQAEE",
+    "gpu_device": 0,
+    "seed": 0,
+    "cache_dir": "./cache",
+    "output_dir": "./outputs/MQAEE_TriCls_ace05_bert-large-cased",
+    "train_file": "../autodl-fs/ace05-en/split1/train.json",
+    "dev_file": "../autodl-fs/ace05-en/split1/dev.json",
+    "test_file": "../autodl-fs/ace05-en/split1/test.json",
+
+    "pretrained_model_name": "bert-large-cased",
+    "pretrained_model_path": "../autodl-fs/bert-large-cased",
+    "max_length": 200,
+    "max_question_length": 64,
+    "max_sample_neg": 3,
+
+    "base_model_dropout": 0.2,
+    "max_epoch": 3,
+    "warmup_epoch": 0,
+    "accumulate_step": 1,
+    "train_batch_size": 4,
+    "eval_batch_size": 1,
+    "learning_rate": 1e-05,
+    "base_model_learning_rate": 1e-05,
+    "weight_decay": 1e-05,
+    "base_model_weight_decay": 1e-05,
+    "grad_clipping": 5.0
+}  
