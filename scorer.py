@@ -1,7 +1,9 @@
 def compute_scores(preds, golds, task):
-    if task == "TriId" or task == "TriCls":
+    if task == "TriId":
+        return compute_ED_scores(preds, golds, metrics={"trigger_id"})
+    elif task == "TriCls":
         return compute_ED_scores(preds, golds, metrics={"trigger_id", "trigger_cls"})
-    elif task == "EAE":
+    elif task == "ArgExt":
         return compute_EAE_scores(preds, golds, metrics={"argument_id", "argument_cls"})
     
 def print_scores(scores):
@@ -34,7 +36,6 @@ def compute_ED_scores(preds, golds, metrics={"trigger_id", "trigger_cls"}):
     return scores
 
 def compute_EAE_scores(preds, golds, metrics={"argument_id", "argument_cls", "argument_attached_id", "argument_attached_cls"}):
-    assert len(preds) == len(golds)
     scores = {}
     if "argument_id" in metrics:
         scores["argument_id"] = compute_EAE_argument_id_score(preds, golds)
@@ -88,6 +89,23 @@ def compute_ED_trigger_cls_score(preds, golds):
     return scores
 
 def compute_EAE_argument_id_score(preds, golds):
+    new_golds = []
+    for gold in golds:
+        doc_id, wnd_id = gold["doc_id"], gold["wnd_id"]
+        for trigger, arguments in zip(gold["triggers"], gold["arguments"]):
+            arguments_ = []
+            for argument in arguments.values():
+                arguments_ += argument
+            new_golds.append({
+                "doc_id": doc_id,
+                "wnd_id": wnd_id,
+                "trigger": trigger,
+                "arguments": arguments_
+            })
+    golds = new_golds
+    
+    assert len(preds) == len(golds)
+    
     gold_arg_id, pred_arg_id = [], []
     for pred, gold in zip(preds, golds):
         assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
@@ -113,19 +131,45 @@ def compute_EAE_argument_id_score(preds, golds):
     return scores
 
 def compute_EAE_argument_cls_score(preds, golds):
+    new_golds = []
+    for gold in golds:
+        doc_id, wnd_id = gold["doc_id"], gold["wnd_id"]
+        for trigger, arguments in zip(gold["triggers"], gold["arguments"]):
+            arguments_ = []
+            for argument in arguments.values():
+                arguments_ += argument
+            new_golds.append({
+                "doc_id": doc_id,
+                "wnd_id": wnd_id,
+                "trigger": trigger,
+                "arguments": arguments_
+            })
+    golds = new_golds
+    
+    assert len(preds) == len(golds)
+    
     gold_arg_cls, pred_arg_cls = [], []
     for pred, gold in zip(preds, golds):
         assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
         assert pred["trigger"][0] == gold["trigger"][0]
         assert pred["trigger"][1] == gold["trigger"][1]
         assert pred["trigger"][2] == gold["trigger"][2]
+    
         gold_arg_cls_ = [(gold["doc_id"], gold["wnd_id"], gold["trigger"][2], r[0], r[1], r[2]) for r in gold["arguments"]]
         pred_arg_cls_ = [(pred["doc_id"], pred["wnd_id"], pred["trigger"][2], r[0], r[1], r[2]) for r in pred["arguments"]]
         gold_arg_cls.extend(gold_arg_cls_)
         pred_arg_cls.extend(pred_arg_cls_)
-        
+    
     gold_arg_cls = set(gold_arg_cls)
     pred_arg_cls = set(pred_arg_cls)
+        
+    # per_type_f1 = []
+    # for i in range(5):
+    #     gold_tri_cls_i = set([j for j in list(gold_tri_cls) if j[5] == i])
+    #     pred_tri_cls_i = set([j for j in list(pred_tri_cls) if j[5] == i])
+    #     tri_cls_f1_i = compute_f1(len(pred_tri_cls_i), len(gold_tri_cls_i), len(gold_tri_cls_i & pred_tri_cls_i))
+    #     per_type_f1.append(tri_cls_f1_i[2])
+        
     arg_cls_f1 = compute_f1(len(pred_arg_cls), len(gold_arg_cls), len(gold_arg_cls & pred_arg_cls))
     scores = {
         "pred_num": len(pred_arg_cls), 

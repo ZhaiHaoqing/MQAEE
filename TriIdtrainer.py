@@ -66,16 +66,13 @@ class MQAEETriIdTrainer(object):
             if len(dt["tokens"]) > self.config.max_length:
                 continue
             
-            no_overlap_flag = np.ones((len(dt["tokens"]), ), dtype=bool)
+            # TODO: sliding window
             spans = []
             for trigger in dt["triggers"]:
                 start, end = trigger[0], trigger[1]
                 # TODO: whether to filter 
                 if end - start > 1:
                     continue
-                # if np.all(no_overlap_flag[start:end]):
-                #     spans.append((trigger[0], trigger[1], "Span"))
-                #     no_overlap_flag[start:end] = False
                 spans.append((trigger[0], trigger[1], "Span"))
             
             pieces = [self.tokenizer.tokenize(t) for t in dt["tokens"]]

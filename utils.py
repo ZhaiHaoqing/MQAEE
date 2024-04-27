@@ -4,15 +4,17 @@ import torch
 from argparse import Namespace
 from TriIdtrainer import MQAEETriIdTrainer
 from TriClstrainer import MQAEETriClsTrainer
+from ArgExttrainer import MQAEEArgExtTrainer
+from pattern import patterns
 
 logger = logging.getLogger(__name__)
 
-VALID_TASKS = ["TriId", "TriCls", "EAE"]
+VALID_TASKS = ["TriId", "TriCls", "ArgExt"]
 
 TRAINER_MAP = {
     ("MQAEE", "TriId"): MQAEETriIdTrainer,  
     ("MQAEE", "TriCls"): MQAEETriClsTrainer,
-    ("MQAEE", "EAE"): MQAEETriIdTrainer, 
+    ("MQAEE", "ArgExt"): MQAEEArgExtTrainer, 
 }
 
 def load_config(config_fn):
@@ -59,7 +61,7 @@ def load_all_data(config):
         test_data, test_type_set = load_ED_data(config.test_file)
         type_set = {"trigger": train_type_set["trigger"] | dev_type_set["trigger"] | test_type_set["trigger"]}
         logger.info("There are {} trigger types in total".format(len(type_set["trigger"])))
-    elif config.task == "EAE":
+    elif config.task == "ArgExt":
         train_data, train_type_set = load_EAE_data(config.train_file)
         dev_data, dev_type_set = load_EAE_data(config.dev_file)
         test_data, test_type_set = load_EAE_data(config.test_file)
@@ -128,41 +130,49 @@ def load_EAE_data(file):
         event_mentions.sort(key=lambda x: x['trigger']['start'])
 
         entity_map = {entity['id']: entity for entity in entities}
+        triggers = []
+        arguments = []
         for i, event_mention in enumerate(event_mentions):
             # trigger = (start index, end index, event type, text span)
             trigger = (event_mention['trigger']['start'], 
                        event_mention['trigger']['end'], 
                        event_mention['event_type'], 
                        event_mention['trigger']['text'])
+            
+            triggers.append(trigger)
 
-            arguments = []
+            argument_roles = patterns['ace05-en'][trigger[2]]
+            arguments_ = {role: [] for role in argument_roles}
             for arg in event_mention['arguments']:
                 mapped_entity = entity_map[arg['entity_id']]
                 
                 # argument = (start index, end index, role type, text span)
-                argument = (mapped_entity['start'], mapped_entity['end'], arg['role'], arg['text'])
-                arguments.append(argument)
+                role_type = arg['role'].capitalize()
+                argument = (mapped_entity['start'], mapped_entity['end'], role_type, arg['text'])
+                arguments_[role_type].append(argument)
 
-            arguments.sort(key=lambda x: (x[0], x[1]))
+            arguments.append(arguments_)
             
-            instance = {"doc_id": dt["doc_id"], 
-                        "wnd_id": dt["wnd_id"], 
-                        "tokens": dt["tokens"], 
-                        "text": dt["text"], 
-                        "trigger": trigger, 
-                        "arguments": arguments, 
-                       }
+        instance = {"doc_id": dt["doc_id"], 
+                    "wnd_id": dt["wnd_id"], 
+                    "tokens": dt["tokens"], 
+                    "text": dt["text"], 
+                    "triggers": triggers, 
+                    "arguments": arguments, 
+                    }
 
-            instances.append(instance)
+        instances.append(instance)
             
     trigger_type_set = set()
     for instance in instances:
-        trigger_type_set.add(instance['trigger'][2])
+        for trigger in instance['triggers']:
+            trigger_type_set.add(trigger[2])
 
     role_type_set = set()
     for instance in instances:
         for argument in instance["arguments"]:
-            role_type_set.add(argument[2])
+            for argument_ in argument:
+                role_type_set.add(argument_)
                 
     type_set = {"trigger": trigger_type_set, "role": role_type_set}
     

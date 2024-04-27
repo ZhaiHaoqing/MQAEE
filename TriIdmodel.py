@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertConfig, RobertaConfig, BertModel, RobertaModel
-from pattern import patterns
-import numpy as np
 
 class MQAEETriIdModel(nn.Module):
     def __init__(self, config, tokenizer):
@@ -44,7 +42,6 @@ class MQAEETriIdModel(nn.Module):
                 trigger_label_stoi['{}-{}'.format(p, t)] = len(trigger_label_stoi)
 
         self.label_stoi = trigger_label_stoi
-        self.type_stoi = {t: i for i, t in enumerate(sorted(["Span"]))}
     
     def get_span_seqlabels(self, spans, token_num, specify_span=None):
         labels = ['O'] * token_num

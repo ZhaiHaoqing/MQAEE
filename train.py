@@ -26,19 +26,29 @@ def main():
     # load data
     train_data, dev_data, test_data, type_set = load_all_data(config)
     
-    # train
     trainer = trainer_class(config, type_set)
-    trainer.train(train_data, dev_data)
-    logger.info("Training was done!")
     
-    # test
-    logger.info("Loading best model for evaluation.")
-    trainer.load_model(checkpoint=config.output_dir)
-    predictions = trainer.predict(test_data, **vars(config))
-    scores = compute_scores(predictions, test_data, config.task)
-    # save_preds(config.output_dir, predictions, test_data)
-    print("Test")
-    print_scores(scores)
+    if config.mode == 'train':
+        # train
+        trainer.train(train_data, dev_data)
+        logger.info("Training was done!")
+
+        # test
+        logger.info("Loading best model for evaluation.")
+        trainer.load_model(checkpoint=config.output_dir)
+        predictions = trainer.predict(test_data)
+        scores = compute_scores(predictions, test_data, config.task)
+        print("Test")
+        print_scores(scores)
+    
+    elif config.mode == 'test':
+        # test
+        logger.info("Loading best model for evaluation.")
+        trainer.load_model(checkpoint=config.checkpoint)
+        predictions = trainer.predict(test_data)
+        scores = compute_scores(predictions, test_data, config.task)
+        print("Test")
+        print_scores(scores)
         
 if __name__ == "__main__":
     main()

@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertConfig, RobertaConfig, BertModel, RobertaModel
 from pattern import patterns
-import numpy as np
 
 class MQAEETriClfModel(nn.Module):
     def __init__(self, config, tokenizer, type_set):
@@ -33,7 +32,7 @@ class MQAEETriClfModel(nn.Module):
         self.base_model.resize_token_embeddings(len(self.tokenizer))
         self.base_model_dim = self.base_config.hidden_size
         
-        self.label_ffn = nn.Linear(self.base_model_dim, 2, bias=False)
+        self.label_ffn = nn.Linear(self.base_model_dim, 2, bias=True)
     
     def process_data(self, batch):
         sent_res = self.tokenizer(batch.batch_questions, padding=True, return_tensors="pt")
@@ -76,7 +75,7 @@ class MQAEETriClfModel(nn.Module):
                     new_question = question.replace("[trigger]", text_span).replace("[trigger_position]", tri_pos)
                     
                     for event_type in self.label_list:
-                        arg_roles = ', '.join(sorted(patterns[self.config.dataset][event_type].keys()))
+                        arg_roles = ', '.join(sorted(patterns[self.config.dataset][event_type]))
                         _new_question = new_question.replace("[event_type]", event_type).replace("[argument_roles]", arg_roles)
                         
                         question_pieces = self.tokenizer.tokenize(_new_question)
@@ -90,6 +89,7 @@ class MQAEETriClfModel(nn.Module):
                         enc_attn.append([1]*len(enc_idx))
 
             if len(enc_idxs) == 0:
+                self.train()
                 return [[] for _ in range(len(batch_pred_spans))]
             
             max_len = max([len(enc_idx) for enc_idx in enc_idxs])
