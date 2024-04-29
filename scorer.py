@@ -5,6 +5,8 @@ def compute_scores(preds, golds, task):
         return compute_ED_scores(preds, golds, metrics={"trigger_id", "trigger_cls"})
     elif task == "ArgExt":
         return compute_EAE_scores(preds, golds, metrics={"argument_id", "argument_cls"})
+    elif task == "E2E":
+        return compute_E2E_scores(preds, golds, metrics={"trigger_id", "trigger_cls", "argument_id", "argument_cls"})
     
 def print_scores(scores):
     print("------------------------------------------------------------------------------")
@@ -41,6 +43,19 @@ def compute_EAE_scores(preds, golds, metrics={"argument_id", "argument_cls", "ar
         scores["argument_id"] = compute_EAE_argument_id_score(preds, golds)
     if "argument_cls" in metrics:
         scores["argument_cls"] = compute_EAE_argument_cls_score(preds, golds)
+    return scores
+
+def compute_E2E_scores(preds, golds, metrics={"trigger_id", "trigger_cls", "argument_id", "argument_cls"}):
+    assert len(preds) == len(golds)
+    scores = {}
+    if "trigger_id" in metrics:
+        scores["trigger_id"] = compute_E2E_trigger_id_score(preds, golds)
+    if "trigger_cls" in metrics:
+        scores["trigger_cls"] = compute_E2E_trigger_cls_score(preds, golds)
+    if "argument_id" in metrics:
+        scores["argument_id"] = compute_E2E_argument_id_score(preds, golds)
+    if "argument_cls" in metrics:
+        scores["argument_cls"] = compute_E2E_argument_cls_score(preds, golds)
     return scores
 
 def compute_ED_trigger_id_score(preds, golds):
@@ -164,12 +179,106 @@ def compute_EAE_argument_cls_score(preds, golds):
     pred_arg_cls = set(pred_arg_cls)
         
     # per_type_f1 = []
-    # for i in range(5):
-    #     gold_tri_cls_i = set([j for j in list(gold_tri_cls) if j[5] == i])
-    #     pred_tri_cls_i = set([j for j in list(pred_tri_cls) if j[5] == i])
-    #     tri_cls_f1_i = compute_f1(len(pred_tri_cls_i), len(gold_tri_cls_i), len(gold_tri_cls_i & pred_tri_cls_i))
-    #     per_type_f1.append(tri_cls_f1_i[2])
+    # for i in ['Place', 'Instrument', 'Attacker', 'Agent', 'Adjudicator', 'Destination', 'Prosecutor', 'Artifact', 'Org', 'Giver', 'Target', 'Defendant', 'Person', 'Victim', 'Origin', 'Entity', 'Plaintiff', 'Beneficiary', 'Recipient', 'Buyer', 'Seller', 'Vehicle']:
+    #     gold_arg_cls_i = set([j for j in list(gold_arg_cls) if j[5] == i])
+    #     print(gold_arg_cls_i)
+    #     pred_arg_cls_i = set([j for j in list(pred_arg_cls) if j[5] == i])
+    #     arg_cls_f1_i = compute_f1(len(pred_arg_cls_i), len(gold_arg_cls_i), len(gold_arg_cls_i & pred_arg_cls_i))
+    #     per_type_f1.append(arg_cls_f1_i[2])
+    # print(per_type_f1)
         
+    arg_cls_f1 = compute_f1(len(pred_arg_cls), len(gold_arg_cls), len(gold_arg_cls & pred_arg_cls))
+    scores = {
+        "pred_num": len(pred_arg_cls), 
+        "gold_num": len(gold_arg_cls), 
+        "match_num": len(gold_arg_cls & pred_arg_cls), 
+        "precision": arg_cls_f1[0], 
+        "recall": arg_cls_f1[1], 
+        "f1": arg_cls_f1[2], 
+    }
+    return scores
+
+def compute_E2E_trigger_id_score(preds, golds):
+    gold_tri_id, pred_tri_id = [], []
+    for pred, gold in zip(preds, golds):
+        assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
+        gold_tri_id_ = [(gold["doc_id"], gold["wnd_id"], e["trigger"][0], e["trigger"][1]) for e in gold["events"]]
+        pred_tri_id_ = [(pred["doc_id"], pred["wnd_id"], e["trigger"][0], e["trigger"][1]) for e in pred["events"]]
+        gold_tri_id.extend(gold_tri_id_)
+        pred_tri_id.extend(pred_tri_id_)
+        
+    gold_tri_id = set(gold_tri_id)
+    pred_tri_id = set(pred_tri_id)
+    tri_id_f1 = compute_f1(len(pred_tri_id), len(gold_tri_id), len(gold_tri_id & pred_tri_id))
+    scores = {
+        "pred_num": len(pred_tri_id), 
+        "gold_num": len(gold_tri_id), 
+        "match_num": len(gold_tri_id & pred_tri_id), 
+        "precision": tri_id_f1[0], 
+        "recall": tri_id_f1[1], 
+        "f1": tri_id_f1[2], 
+    }
+    return scores
+
+def compute_E2E_trigger_cls_score(preds, golds):
+    gold_tri_cls, pred_tri_cls = [], []
+    for pred, gold in zip(preds, golds):
+        assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
+        gold_tri_cls_ = [(gold["doc_id"], gold["wnd_id"], e["trigger"][0], e["trigger"][1], e["trigger"][2]) for e in gold["events"]]
+        pred_tri_cls_ = [(pred["doc_id"], pred["wnd_id"], e["trigger"][0], e["trigger"][1], e["trigger"][2]) for e in pred["events"]]
+        gold_tri_cls.extend(gold_tri_cls_)
+        pred_tri_cls.extend(pred_tri_cls_)
+        
+    gold_tri_cls = set(gold_tri_cls)
+    pred_tri_cls = set(pred_tri_cls)
+    tri_cls_f1 = compute_f1(len(pred_tri_cls), len(gold_tri_cls), len(gold_tri_cls & pred_tri_cls))
+    scores = {
+        "pred_num": len(pred_tri_cls), 
+        "gold_num": len(gold_tri_cls), 
+        "match_num": len(gold_tri_cls & pred_tri_cls), 
+        "precision": tri_cls_f1[0], 
+        "recall": tri_cls_f1[1], 
+        "f1": tri_cls_f1[2], 
+    }
+    return scores
+
+def compute_E2E_argument_id_score(preds, golds):
+    gold_arg_id, pred_arg_id = [], []
+    for pred, gold in zip(preds, golds):
+        assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
+        for event in gold["events"]:
+            gold_arg_id_ = [(gold["doc_id"], gold["wnd_id"], event["trigger"][2], r[0], r[1]) for r in event["arguments"]]
+            gold_arg_id.extend(gold_arg_id_)
+        for event in pred["events"]:
+            pred_arg_id_ = [(pred["doc_id"], pred["wnd_id"], event["trigger"][2], r[0], r[1]) for r in event["arguments"]]
+            pred_arg_id.extend(pred_arg_id_)
+        
+    gold_arg_id = set(gold_arg_id)
+    pred_arg_id = set(pred_arg_id)
+    arg_id_f1 = compute_f1(len(pred_arg_id), len(gold_arg_id), len(gold_arg_id & pred_arg_id))
+    scores = {
+        "pred_num": len(pred_arg_id), 
+        "gold_num": len(gold_arg_id), 
+        "match_num": len(gold_arg_id & pred_arg_id), 
+        "precision": arg_id_f1[0], 
+        "recall": arg_id_f1[1], 
+        "f1": arg_id_f1[2], 
+    }
+    return scores
+
+def compute_E2E_argument_cls_score(preds, golds):
+    gold_arg_cls, pred_arg_cls = [], []
+    for pred, gold in zip(preds, golds):
+        assert pred["doc_id"] == gold["doc_id"] and pred["wnd_id"] == gold["wnd_id"]
+        for event in gold["events"]:
+            gold_arg_cls_ = [(gold["doc_id"], gold["wnd_id"], event["trigger"][2], r[0], r[1], r[2]) for r in event["arguments"]]
+            gold_arg_cls.extend(gold_arg_cls_)
+        for event in pred["events"]:
+            pred_arg_cls_ = [(pred["doc_id"], pred["wnd_id"], event["trigger"][2], r[0], r[1], r[2]) for r in event["arguments"]]
+            pred_arg_cls.extend(pred_arg_cls_)
+        
+    gold_arg_cls = set(gold_arg_cls)
+    pred_arg_cls = set(pred_arg_cls)
     arg_cls_f1 = compute_f1(len(pred_arg_cls), len(gold_arg_cls), len(gold_arg_cls & pred_arg_cls))
     scores = {
         "pred_num": len(pred_arg_cls), 

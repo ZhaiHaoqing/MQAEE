@@ -6,8 +6,7 @@ from transformers import RobertaTokenizer, AutoTokenizer, get_linear_schedule_wi
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from ArgExtmodel import MQAEEArgExtModel
-from TriIdmodel import MQAEETriIdModel
-from TriClsmodel import MQAEETriClfModel
+
 from scorer import compute_EAE_scores, print_scores
 
 logger = logging.getLogger(__name__)
@@ -38,25 +37,6 @@ class MQAEEArgExtTrainer(object):
         self.type_set = type_set
     
     def load_model(self, checkpoint=None):
-        # span_checkpoint = "./outputs/MQAEE_TriId_ace05_bert-large-cased/20240422_201837013/"
-        # with open(os.path.join(span_checkpoint, "config.json"), 'r') as f:
-        #     span_config = json.load(f)
-        # span_config = Namespace(**span_config)
-        # span_state = torch.load(os.path.join(span_checkpoint, "best_span_model.state"), map_location=f'cuda:{self.config.gpu_device}')
-        # span_tokenizer = span_state["tokenizer"]
-        # self.span_model = MQAEETriIdModel(span_config, span_tokenizer)
-        # self.span_model.load_state_dict(span_state['span_model'])
-        # self.span_model.cuda(device=self.config.gpu_device)
-        
-        # ed_checkpoint = "./outputs/MQAEE_TriId_ace05_bert-large-cased/20240422_201837013/"
-        # with open(os.path.join(ed_checkpoint, "config.json"), 'r') as f:
-        #     ed_config = json.load(f)
-        # ed_config = Namespace(**ed_config)
-        # ed_state = torch.load(os.path.join(ed_checkpoint, "best_model.state"), map_location=f'cuda:{self.config.gpu_device}')
-        # ed_tokenizer = ed_state["tokenizer"]
-        # self.ed_model = MQAEETriClsModel(ed_config, ed_tokenizer)
-        # self.ed_model.load_state_dict(ed_state['model'])
-        # self.ed_model.cuda(device=self.config.gpu_device)
         
         if checkpoint:
             logger.info(f"Loading model from {checkpoint}")
@@ -238,8 +218,6 @@ class MQAEEArgExtTrainer(object):
         for batch_idx, batch in enumerate(DataLoader(eval_data, batch_size=self.config.eval_batch_size, 
                                                      shuffle=False, collate_fn=EAE_collate_fn)):
             progress.update(1)
-            # batch_pred_spans = self.span_model.predict(batch)
-            # batch_pred_triggers = self.ed_model.predict(batch, batch_pred_spans)
             batch_pred_arguments = self.model.predict(batch, batch.batch_trigger)
             for doc_id, wnd_id, tokens, text, triggers in zip(batch.batch_doc_id, batch.batch_wnd_id, batch.batch_tokens, batch.batch_text, batch.batch_trigger):
                 for pred_arguments, trigger in zip(batch_pred_arguments, triggers):

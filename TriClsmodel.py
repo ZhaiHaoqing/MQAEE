@@ -80,10 +80,10 @@ class MQAEETriClfModel(nn.Module):
                         
                         question_pieces = self.tokenizer.tokenize(_new_question)
                         question_idx = self.tokenizer.convert_tokens_to_ids(question_pieces)
-                        question_idx = question_idx[:self.config.max_question_length]
+                        # question_idx = question_idx[:self.config.max_question_length]
 
                         enc_idx = [self.tokenizer.convert_tokens_to_ids(self.tokenizer.bos_token)] + question_idx + \
-                                [self.tokenizer.convert_tokens_to_ids(self.tokenizer.sep_token)] + piece_id + [self.tokenizer.convert_tokens_to_ids(self.tokenizer.eos_token)]
+                                [self.tokenizer.convert_tokens_to_ids(self.tokenizer.eos_token)] + piece_id + [self.tokenizer.convert_tokens_to_ids(self.tokenizer.eos_token)]
                         
                         enc_idxs.append(enc_idx)
                         enc_attn.append([1]*len(enc_idx))
@@ -114,6 +114,6 @@ class MQAEETriClfModel(nn.Module):
                 batch_pred_triggers.append(pred_triggers)
 
         self.train()
-
+        
         return batch_pred_triggers
 

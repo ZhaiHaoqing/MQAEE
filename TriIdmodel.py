@@ -32,7 +32,7 @@ class MQAEETriIdModel(nn.Module):
         self.base_model_dim = self.base_config.hidden_size
         self.base_model_dropout = nn.Dropout(p=self.config.span_base_model_dropout)
         
-        self.trigger_label_ffn = nn.Linear(self.base_model_dim, len(self.label_stoi), bias=False)
+        self.trigger_label_ffn = nn.Linear(self.base_model_dim, len(self.label_stoi), bias=True)
             
     def generate_tagging_vocab(self):
         prefix = ['B', 'I']

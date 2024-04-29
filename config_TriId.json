@@ -7,13 +7,13 @@
     "seed": 0,
     "cache_dir": "./cache",
     "output_dir": "./outputs/MQAEE_TriId_ace05_bert-large-cased",
-    "train_file": "../autodl-fs/ace05-en/split6/train.json",
-    "dev_file": "../autodl-fs/ace05-en/split6/dev.json",
-    "test_file": "../autodl-fs/ace05-en/split6/test.json",
-    "checkpoint": "",
+    "train_file": "./data/train.json",
+    "dev_file": "./data/dev.json",
+    "test_file": "./data/test.json",
+    "checkpoint": " ",
 
     "pretrained_model_name": "bert-large-cased",
-    "pretrained_model_path": "../autodl-fs/bert-large-cased",
+    "pretrained_model_path": "bert-large-cased",
     "max_length": 200,
     "multi_piece_strategy": "average",
 

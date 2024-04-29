@@ -1,4 +1,4 @@
-import os, logging, json, random, datetime, pprint
+import os, logging, json, random, datetime, pprint, collections
 import numpy as np
 import torch
 from argparse import Namespace
@@ -54,6 +54,21 @@ def set_logger(config):
     
     return config
 
+def load_data(task, file):
+    if task == "E2E":
+        data, type_set = load_E2E_data(file)
+        logger.info("There are {} trigger types and {} role types in total".format(len(type_set["trigger"]), len(type_set["role"])))
+    elif task == "TriId" or task == "TriCls":
+        data, type_set = load_ED_data(file)
+        logger.info("There are {} trigger types in total".format(len(type_set["trigger"])))
+    elif task == "ArgExt":
+        data, type_set = load_EAE_data(file)
+        logger.info("There are {} trigger types and {} role types in total".format(len(type_set["trigger"]), len(type_set["role"])))
+    else:
+        raise ValueError(f"Task {task} is not supported")
+    
+    return data, type_set
+
 def load_all_data(config):
     if config.task == "TriId" or config.task == "TriCls":
         train_data, train_type_set = load_ED_data(config.train_file)
@@ -80,6 +95,7 @@ def load_ED_data(file):
     
     instances = []
     for dt in data:
+        
         event_mentions = dt['event_mentions']
         event_mentions.sort(key=lambda x: x['trigger']['start'])
 
@@ -180,3 +196,123 @@ def load_EAE_data(file):
         len(instances), len(trigger_type_set), len(role_type_set), file))
     
     return instances, type_set
+
+def load_E2E_data(file):
+
+    with open(file, 'r', encoding='utf-8') as fp:
+        data = json.load(fp)
+    
+    instances = []
+    for dt in data:
+
+        entities = dt['entity_mentions']
+
+        event_mentions = dt['event_mentions']
+        event_mentions.sort(key=lambda x: x['trigger']['start'])
+
+        events = []
+        entity_map = {entity['id']: entity for entity in entities}
+        for i, event_mention in enumerate(event_mentions):
+            # trigger = (start index, end index, event type, text span)
+            trigger = (event_mention['trigger']['start'], 
+                       event_mention['trigger']['end'], 
+                       event_mention['event_type'], 
+                       event_mention['trigger']['text'])
+
+            arguments = []
+            for arg in event_mention['arguments']:
+                mapped_entity = entity_map[arg['entity_id']]
+                
+                # argument = (start index, end index, role type, text span)
+                argument = (mapped_entity['start'], mapped_entity['end'], arg['role'], arg['text'])
+                arguments.append(argument)
+
+            arguments.sort(key=lambda x: (x[0], x[1]))
+            events.append({"trigger": trigger, "arguments": arguments})
+
+        events.sort(key=lambda x: (x['trigger'][0], x['trigger'][1]))
+        
+        instance = {"doc_id": dt["doc_id"], 
+                    "wnd_id": dt["wnd_id"], 
+                    "tokens": dt["tokens"], 
+                    "text": dt["text"], 
+                    "events": events, 
+                   }
+
+        instances.append(instance)
+
+    trigger_type_set = set()
+    for instance in instances:
+        for event in instance['events']:
+            trigger_type_set.add(event['trigger'][2])
+
+    role_type_set = set()
+    for instance in instances:
+        for event in instance['events']:
+            for argument in event["arguments"]:
+                role_type_set.add(argument[2])
+                
+    type_set = {"trigger": trigger_type_set, "role": role_type_set}
+    
+    logger.info('Loaded {} E2E instances ({} trigger types and {} role types) from {}'.format(
+        len(instances), len(trigger_type_set), len(role_type_set), file))
+    
+    return instances, type_set
+
+def convert_TriId_to_TriCls(data, gold):
+    instances = []
+    for dt, gd in zip(data, gold):
+        assert dt["doc_id"] == gd["doc_id"] and dt["wnd_id"] == gd["wnd_id"]
+        triggers = []
+        for trigger in dt["triggers"]:
+            trigger_ = (trigger[0], trigger[1], trigger[2], " ".join(gd["tokens"][trigger[0]:trigger[1]]))
+            triggers.append(trigger_)
+        
+        instance = {"doc_id": gd["doc_id"], 
+                    "wnd_id": gd["wnd_id"], 
+                    "tokens": gd["tokens"], 
+                    "text": gd["text"], 
+                    "triggers": triggers, 
+                    }
+        instances.append(instance)
+    
+    return instances
+
+def convert_TriCls_to_ArgExt(data, gold):
+    instances = []
+    for dt, gd in zip(data, gold):
+        triggers = []
+        for trigger in dt["triggers"]:
+            trigger_ = (trigger[0], trigger[1], trigger[2], " ".join(gd["tokens"][trigger[0]:trigger[1]]))
+            triggers.append(trigger_)
+
+        instance = {"doc_id": gd["doc_id"], 
+                    "wnd_id": gd["wnd_id"], 
+                    "tokens": gd["tokens"], 
+                    "text": gd["text"], 
+                    "triggers": triggers, 
+                    "arguments": [], 
+                    }
+        instances.append(instance)
+    
+    return instances
+
+def combine_ED_and_EAE_to_E2E(ed_predicitons, eae_predictions):
+    e2e_predictions = []
+    idx = 0
+    for ed_prediciton in ed_predicitons:
+        events = []
+        for trigger in ed_prediciton["triggers"]:
+            eae_prediction = eae_predictions[idx]
+            assert ed_prediciton["doc_id"] == eae_prediction["doc_id"]
+            assert ed_prediciton["wnd_id"] == eae_prediction["wnd_id"]
+            assert trigger[0] == eae_prediction["trigger"][0]
+            assert trigger[1] == eae_prediction["trigger"][1]
+            assert trigger[2] == eae_prediction["trigger"][2]
+            events.append({"trigger": trigger, "arguments": eae_prediction["arguments"]})
+            idx += 1
+        
+        ed_prediciton["events"] = events
+        e2e_predictions.append(ed_prediciton)
+
+    return e2e_predictions

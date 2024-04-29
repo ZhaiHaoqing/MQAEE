@@ -66,14 +66,10 @@ class MQAEETriIdTrainer(object):
             if len(dt["tokens"]) > self.config.max_length:
                 continue
             
-            # TODO: sliding window
             spans = []
             for trigger in dt["triggers"]:
                 start, end = trigger[0], trigger[1]
-                # TODO: whether to filter 
-                if end - start > 1:
-                    continue
-                spans.append((trigger[0], trigger[1], "Span"))
+                spans.append((start, end, "Span"))
             
             pieces = [self.tokenizer.tokenize(t) for t in dt["tokens"]]
             token_lens = [len(p) for p in pieces]
