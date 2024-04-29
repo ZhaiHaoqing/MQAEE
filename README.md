@@ -8,6 +8,43 @@ The code is based on [TextEE](https://github.com/ej0cl6/TextEE/).
 
 **Group members**: Pham Minh Khoi, Siew Tze Kang, Su Su Yi, Sui Jinhong
 
+<table  style="width:100%" border="0">
+<thead>
+<tr class="header">
+  <th><strong> Name </strong></th>
+  <th><strong> Matriculation number</strong></th>
+  <th><strong> Email </strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td> Pham Minh Khoi </td>
+  <td> G2303923E </td>
+  <td> s230119@e.ntu.edu.sg </td>
+</tr>
+<tr>
+  <td> Siew Tze Kang, Julian </td>
+  <td> G2303643F </td>
+  <td> siew0056@e.ntu.edu.sg </td>
+</tr>
+<tr>
+  <td> Su Su Yi </td>
+  <td> G2304221L </td>
+  <td> susu001@e.ntu.edu.sg </td>
+</tr>
+<tr>
+  <td> Sui Jinhong </td>
+  <td> G2302859J </td>
+  <td> suij0003@e.ntu.edu.sg </td>
+</tr>
+<tr>
+  <td> Zhai Haoqing </td>
+  <td> G2303503A </td>
+  <td> zhai0032@e.ntu.edu.sg </td>
+</tr>
+</tbody>
+</table>
+
 
 ## Introduction
 To fulfill the requirements of the project, we have chosen a 2020 conference paper to reimplement its algorithm. This algorithm,
@@ -39,11 +76,11 @@ referred to as MQAEE, splits event extraction into three sub-tasks: trigger iden
   <td> 47.8 </td>
   <td> 45.6 </td>
 </tr>
-
 </tbody>
 </table>
 
 ## Environment
+Please install the following packages from both conda and pip.
 
 ```
 conda install
@@ -84,6 +121,6 @@ python train.py -c [config]
 ```
 python evaluate_pipeline.py --data [data_path] --triid_model [model_path] --tricls_model [model_path] --argext_model [model_path]
 ```
-
+You can download pre-trained models from [Google Drive](https://drive.google.com/drive/folders/1dlDoz0-8KaYNOE1DUZNa7OlSkkcZAQ41?usp=drive_link) to the outputs folder.
 ## Contact
 If you have any question, please email zhai0032@e.ntu.edu.sg.
